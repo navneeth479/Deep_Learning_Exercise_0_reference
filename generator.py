@@ -1,5 +1,6 @@
-import os.path
+import os
 import json
+import itertools
 import scipy.misc
 import numpy as np
 import matplotlib.pyplot as plt
@@ -21,13 +22,37 @@ class ImageGenerator:
         self.class_dict = {0: 'airplane', 1: 'automobile', 2: 'bird', 3: 'cat', 4: 'deer', 5: 'dog', 6: 'frog',
                            7: 'horse', 8: 'ship', 9: 'truck'}
         #TODO: implement constructor
+        self.file_path = file_path
+        self.label_path = label_path
+        self.batch_size = batch_size
+        self.image_size = image_size
+        self.rotation = rotation
+        self.mirroring = mirroring
+        self.shuffle = shuffle
+        
+        self.file_names = os.listdir(file_path)
+        self.file_names.sort(key = lambda x : int(x.split(".")[0]))
+        self.iterator_gen = itertools.cycle(self.file_names)
+        self.next_request_count = 0
 
+
+        with open(self.label_path, 'r') as j:
+            self.label_json = json.loads(j.read())
+        
     def next(self):
         # This function creates a batch of images and corresponding labels and returns them.
         # In this context a "batch" of images just means a bunch, say 10 images that are forwarded at once.
         # Note that your amount of total data might not be divisible without remainder with the batch_size.
         # Think about how to handle such cases
         #TODO: implement next method
+        
+        image_names = [next(self.iterator_gen) for _ in range(self.batch_size)]
+        
+        images = [np.load(self.file_path + i) for i in image_names]
+        
+        labels = [int(i.split(".")[0]) for i in image_names]
+        
+        self.next_request_count += 1
 
         return images, labels
 
@@ -40,14 +65,46 @@ class ImageGenerator:
 
     def current_epoch(self):
         # return the current epoch number
-        return 0
+        return self.next_request_count * self.batch_size // len(self.file_names)
 
     def class_name(self, x):
         # This function returns the class name for a specific input
         #TODO: implement class name function
-        return
+        return self.class_dict[self.label_json[x]]
     def show(self):
         # In order to verify that the generator creates batches as required, this functions calls next to get a
         # batch of images and labels and visualizes it.
         #TODO: implement show method
+        
+        images, labels = self.next()
+        
+        classes = [self.class_name(str(i)) for i in labels]
+        
+        return classes
+
+
+file_path = '/home/shanur/SS22_Programs/exercise0_material/src_to_implement/exercise_data/'
+label_path = '/home/shanur/SS22_Programs/exercise0_material/src_to_implement/Labels.json'
+batch_size = 32
+image_size = [20, 20, 3]
+ 
+ 
+obj = ImageGenerator(file_path, label_path, batch_size, image_size, rotation=False, mirroring=False, shuffle=False)
+
+l1 = obj.next()
+l2 = obj.next()
+l3 = obj.next()
+l4 = obj.next()
+
+#l = [obj.next() for _ in range(3)]
+print("Epochs")
+print(obj.current_epoch())
+
+
+
+
+
+
+
+
 

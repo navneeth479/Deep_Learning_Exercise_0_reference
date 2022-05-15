@@ -29,3 +29,42 @@ class Checker:
     def show(self):
         plt.imshow(self.output,cmap='gray')
         plt.show()
+        
+class Circle:
+    def __init__(self, resolution, radius, position):
+        self.resolution = resolution
+        self.radius = radius
+        self.cx, self.cy = position[0], position[1]
+        
+    
+    def draw(self):
+        x = np.linspace(0, self.resolution, self.resolution)
+        y = np.linspace(0, self.resolution, self.resolution)
+        
+        xx, yy = np.meshgrid(x, y)
+        
+        mask = (xx - self.cx)**2+(yy - self.cy)**2-self.radius**2 <= 0
+#        mask = mask.astype(int)
+
+        self.output = mask
+        return mask.copy()
+        
+    def show(self):
+        plt.imshow(self.output)
+        
+
+
+class Spectrum:
+    def __init__(self, resolution):
+        self.resolution = resolution
+    
+    def draw(self):
+        op=np.zeros([self.resolution,self.resolution, 3])
+        op[:,:,0]= np.linspace(0,1,self.resolution)
+        op[:,:,1]=np.linspace(0,1,self.resolution).reshape (self.resolution, 1)
+        op[:,:,2]= np.linspace(1,0,self.resolution)
+        self.output = op
+        return op.copy()
+    
+    def show(self):
+        plt.imshow(self.output)
