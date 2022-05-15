@@ -71,26 +71,30 @@ class ImageGenerator:
         # This function returns the class name for a specific input
         #TODO: implement class name function
         return self.class_dict[self.label_json[x]]
+
     def show(self):
         # In order to verify that the generator creates batches as required, this functions calls next to get a
         # batch of images and labels and visualizes it.
         #TODO: implement show method
-        
         images, labels = self.next()
-        
-        classes = [self.class_name(str(i)) for i in labels]
-        
-        return classes
-
+        fig,axs=plt.subplots(4,3,figsize=(7,7))
+        for (x,y,ax) in zip(images,labels,axs.flatten()):
+            ax.imshow(x)
+            ax.set_title(self.class_name(str(y)))
+            ax.axis("off")
+        fig.tight_layout()
+        plt.show()
 
 file_path = '/home/shanur/SS22_Programs/exercise0_material/src_to_implement/exercise_data/'
 label_path = '/home/shanur/SS22_Programs/exercise0_material/src_to_implement/Labels.json'
+
 batch_size = 32
 image_size = [20, 20, 3]
  
  
 obj = ImageGenerator(file_path, label_path, batch_size, image_size, rotation=False, mirroring=False, shuffle=False)
 
+obj.show()
 l1 = obj.next()
 l2 = obj.next()
 l3 = obj.next()
