@@ -7,6 +7,8 @@ class Checker:
         self.tile_size=tile_size
         self.output=None
         self.no_black_while_tiles=int(self.resolution/(2*self.tile_size))
+        if (self.resolution%(2*self.tile_size))!=0:
+            raise AssertionError("Resolution is not evenly divisible")
 
     def draw(self):
         zeros=np.zeros(self.tile_size,dtype=int)
