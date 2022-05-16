@@ -3,7 +3,21 @@ import json
 import itertools
 import scipy.misc
 import numpy as np
+import random
+from scipy.ndimage import rotate
 import matplotlib.pyplot as plt
+from skimage.transform import resize
+
+
+def cycle_mod(iterable):
+    saved = []
+    for element in iterable:
+        yield element
+        saved.append(element)
+    while saved:
+        random.shuffle(saved)
+        for element in saved:
+            yield element
 
 # In this exercise task you will implement an image generator. Generator objects in python are defined as having a next function.
 # This next function returns the next generated object. In our case it returns the input of a neural network each time it gets called.
@@ -32,7 +46,11 @@ class ImageGenerator:
         
         self.file_names = os.listdir(file_path)
         self.file_names.sort(key = lambda x : int(x.split(".")[0]))
-        self.iterator_gen = itertools.cycle(self.file_names)
+        
+        if self.shuffle:
+            self.iterator_gen = cycle_mod(self.file_names)
+        else:
+            self.iterator_gen = itertools.cycle(self.file_names)
         self.next_request_count = 0
 
 
@@ -47,25 +65,34 @@ class ImageGenerator:
         #TODO: implement next method
         
         image_names = [next(self.iterator_gen) for _ in range(self.batch_size)]
-        
-        images = [np.load(self.file_path + i) for i in image_names]
+                
+        if self.shuffle:
+            random.shuffle(image_names)
+            
+        images = [self.augment(resize(np.load(self.file_path + i), self.image_size)) for i in image_names]
         
         labels = [int(i.split(".")[0]) for i in image_names]
         
         self.next_request_count += 1
 
-        return images, labels
+        return (np.array(images), labels)
 
     def augment(self,img):
         # this function takes a single image as an input and performs a random transformation
         # (mirroring and/or rotation) on it and outputs the transformed image
         #TODO: implement augmentation function
-
+        if self.rotation:
+            img = np.rot90(img, k = random.choice([0, 1, 2, 3]))
+            
+        if self.mirroring:
+            img = np.fliplr(img)
+            
         return img
 
     def current_epoch(self):
         # return the current epoch number
-        return self.next_request_count * self.batch_size // len(self.file_names)
+        print(self.next_request_count)
+        return self.next_request_count * self.batch_size // (len(self.file_names)+1)
 
     def class_name(self, x):
         # This function returns the class name for a specific input
@@ -84,31 +111,7 @@ class ImageGenerator:
             ax.axis("off")
         fig.tight_layout()
         plt.show()
-
-file_path = '/home/shanur/SS22_Programs/exercise0_material/src_to_implement/exercise_data/'
-label_path = '/home/shanur/SS22_Programs/exercise0_material/src_to_implement/Labels.json'
-
-batch_size = 32
-image_size = [20, 20, 3]
- 
- 
-obj = ImageGenerator(file_path, label_path, batch_size, image_size, rotation=False, mirroring=False, shuffle=False)
-
-obj.show()
-l1 = obj.next()
-l2 = obj.next()
-l3 = obj.next()
-l4 = obj.next()
-
-#l = [obj.next() for _ in range(3)]
-print("Epochs")
-print(obj.current_epoch())
-
-
-
-
-
-
+#
 
 
 
