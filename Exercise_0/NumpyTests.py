@@ -306,7 +306,6 @@ class TestGen(unittest.TestCase):
 if __name__ == '__main__':
 
     import sys
-
     if sys.argv[-1] == "Bonus":
         loader = unittest.TestLoader()
         bonus_points = {}
