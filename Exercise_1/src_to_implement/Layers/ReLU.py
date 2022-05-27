@@ -5,10 +5,17 @@ Created on Tue May 24 13:25:45 2022
 
 @author: shanur
 """
+from Layers import Base
+import numpy as np
 
-class ReLU:
+class ReLU(Base.BaseLayer):
     def __init__(self):
-        pass
+        super().__init__()
     
-    def forwards():
-        pass
+    def forward(self,input_tensor):
+        self.input_tensor=input_tensor
+        return np.maximum(0,input_tensor)
+
+    def backward(self,error_tensor):
+        a=np.maximum(0,error_tensor)
+        return np.dot(np.transpose(self.input_tensor),a)
