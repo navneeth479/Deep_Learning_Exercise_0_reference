@@ -17,5 +17,4 @@ class ReLU(Base.BaseLayer):
         return np.maximum(0,input_tensor)
 
     def backward(self,error_tensor):
-        a=np.maximum(0,error_tensor)
-        return np.dot(np.transpose(self.input_tensor),a)
+        return np.where(self.input_tensor<=0,0,error_tensor)
