@@ -7,6 +7,3 @@ class Sgd:
         
     def calculate_update(self, weight_tensor, gradient_tensor):
         return weight_tensor - self.learning_rate * gradient_tensor
-    
-class Loss:
-    pass

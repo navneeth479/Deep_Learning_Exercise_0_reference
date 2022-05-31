@@ -42,4 +42,5 @@ class FullyConnected(Base.BaseLayer):
         
         return self.gradient_inputs
     
-    def calculate_update(weight_tensor, gradient_tensor) 
+    def calculate_update(weight_tensor, gradient_tensor):
+        pass
