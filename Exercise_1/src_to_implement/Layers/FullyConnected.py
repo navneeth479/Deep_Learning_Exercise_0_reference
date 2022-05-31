@@ -15,11 +15,17 @@ class FullyConnected(Base.BaseLayer):
         super().__init__()
         self.trainable = True
         self.weights = np.random.uniform(0,1,size = (input_size, output_size))
-
+#        print("Weights beofre Concatenation", self.weights.shape)
+        self.bias = np.random.uniform(0, 1, size=(1, output_size))
+#        self.weights = np.x`([self.weights, bias], axis = 1)
+        
     
     def forward(self, input_tensor):
+
         self.input_tensor = input_tensor
-        return np.matmul(self.input_tensor, self.weights)
+        prod = np.matmul(self.input_tensor, self.weights)
+        
+        return prod + self.bias
     
     @property
     def optimizer(self):
@@ -36,11 +42,25 @@ class FullyConnected(Base.BaseLayer):
 #        
         self.gradient_inputs = np.matmul(error_tensor, np.transpose(self.weights))
         self.gradient_weights = np.matmul(np.transpose(self.input_tensor), error_tensor)
+#        self.gradient_weights -= np.ones(self.gradient_weights.shape)
         
 #        print("Gradient_inputs", self.gradient_inputs.shape)
-#        print("Gradient Weights", self.gradient_weights.shape)
+#        print("Error TEsnor", error_tensor.shape)
+#        print("Bias SHape", self.bias.shape)
         
-        return self.gradient_inputs
+        try:
+            opt = self.optimizer
+#            print("Weights shape", self.weights.shape)
+#            print("Gradient Weights", self.gradient_weights.shape)
+            self.weights = opt.calculate_update(self.weights, self.gradient_weights)
+            self.bias = opt.calculate_update(self.bias, np.matmul(np.ones((1, error_tensor.shape[0])), error_tensor))
+
+#            self.weights = opt.calculate_update(self.weights, self.gradient_weights)
+
+#            self.weights -= np.ones(self.weights.shape)
+            
+        except AttributeError:
+            pass
+        
+        return self.gradient_inputs 
     
-    def calculate_update(weight_tensor, gradient_tensor):
-        pass
