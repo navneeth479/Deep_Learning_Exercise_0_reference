@@ -18,7 +18,7 @@ class SoftMax(Base.BaseLayer):
         input_tensor=input_tensor-np.max(input_tensor)
 
         exponent_sums = np.sum(np.exp(input_tensor), axis = 1).reshape((input_tensor.shape[0], 1))
-        
+
         self.y_hat = np.exp(input_tensor) / exponent_sums
         return self.y_hat
 
