@@ -94,7 +94,6 @@ class BatchNormalization(Base.BaseLayer):
             self.gradient_weights = np.sum(error_tensor * self.X_hat, axis=0)
             self.gradient_bias = np.sum(error_tensor, axis=0)
 
-        '''Update with optimizers'''
         if self._optimizer:
             self.weights = self._optimizer.calculate_update(self.weights, self._gradient_weights)
         if self._bias_optimizer:
@@ -104,10 +103,6 @@ class BatchNormalization(Base.BaseLayer):
 
     
     def reformat(self, tensor):
-        '''
-        Receives the tensor that must be reshaped.
-        image (4D) to vector (2D), and vice-versa.
-        '''
         out = np.zeros_like(tensor)
         if len(tensor.shape) == 4:
             B, H, M, N = tensor.shape
@@ -126,11 +121,6 @@ class BatchNormalization(Base.BaseLayer):
             out = out.reshape((B, H, M, N))
 
         return out
-
-
-
-
-    '''Properties'''
 
     @property
     def gradient_weights(self):

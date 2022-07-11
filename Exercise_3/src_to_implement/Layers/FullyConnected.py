@@ -9,6 +9,8 @@ Created on Tue May 24 13:25:45 2022
 import random
 import numpy as np
 from Layers import Base
+#import Base
+
 class FullyConnected(Base.BaseLayer):
     
     def __init__(self, input_size, output_size):
@@ -25,7 +27,10 @@ class FullyConnected(Base.BaseLayer):
         
     
     def forward(self, input_tensor):
+
         self.input_tensor = np.concatenate((input_tensor, np.ones([input_tensor.shape[0], 1])), axis=1)
+#        print("Input_tenspr", self.input_tensor.shape)
+#        print("weights", self.weights.shape)
         return np.matmul(self.input_tensor, self.weights)
         #return prod + self.bias
     
@@ -38,6 +43,8 @@ class FullyConnected(Base.BaseLayer):
         self._optimizer = val
         
     def backward(self, error_tensor):
+#        print("Error Tensor", error_tensor.shape)
+#        print("Input Tensor", self.input_tensor.shape)
 #        
         self.gradient_inputs = np.matmul(error_tensor, np.transpose(self.weights))
         self.gradient_weights = np.matmul(np.transpose(self.input_tensor), error_tensor)
