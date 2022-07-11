@@ -1292,7 +1292,7 @@ class TestRNN(unittest.TestCase):
         layers.append(layer)
         layers.append(L2Loss())
         difference = Helpers.gradient_check(layers, input_tensor, self.label_tensor)
-        print("difference", difference[-1])
+#        print("difference", difference[-1])
         self.assertLessEqual(np.sum(difference), 1e-4)
 
     def test_gradient_weights(self):

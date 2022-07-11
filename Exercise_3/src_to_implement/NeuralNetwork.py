@@ -39,6 +39,7 @@ class NeuralNetwork(Base.BaseLayer):
                 reg_loss += self.optimizer.regularizer.norm(layer.weights)  
             except AttributeError:
                 pass
+            layer.testing_phase = True
         return self.loss_layer.forward(self.input_tensor+reg_loss, self.label_tensor)
     
     def backward(self):

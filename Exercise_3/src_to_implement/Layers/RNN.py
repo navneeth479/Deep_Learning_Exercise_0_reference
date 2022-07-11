@@ -30,7 +30,7 @@ class RNN(Base.BaseLayer):
         self.output_size = output_size
         self.hidden_state = np.zeros(hidden_size)
         self.trainable = True
-        self._memorise = False
+        self._mem = False
         self._optimizer = None
         self._gradient_weights = None
         
@@ -48,11 +48,12 @@ class RNN(Base.BaseLayer):
         
         
     @property
-    def memorise(self):
-        return self._memorise
-    @memorise.setter
-    def memorise(self, value):
-        self._memorise = value
+    def mem(self):
+        return self._mem
+
+    @mem.setter
+    def memorize(self, var):
+        self._mem = var
         
     
     def forward(self, input_tensor):
@@ -60,22 +61,26 @@ class RNN(Base.BaseLayer):
         self.all_tanh_activations = []
         self.all_otpt_fc_input_tensors = []
         self.all_hidden_fc_input_tensors = []
-        
-        hidden_state = self.hidden_state if not(self._memorise) else np.zeros(self.hidden_size)
-        
+        hidden_state = self.hidden_state if self._mem else np.zeros(self.hidden_size)
+#        print("Hidden", np.sum(hidden_state))
+#        if not self.memorise:
+#            hidden_state = np.zeros(self.hidden_size)  # initialize hidden_state with zero
+#        else:
+#            hidden_state = self.hidden_state
 #        self.weights = self.hidden_fc.weights
         
         inpt_2s = []
+        
         for i in range(input_tensor.shape[0]):
             inpt_1 = np.concatenate([hidden_state, input_tensor[i]]).reshape(1, -1)
-#            self.all_hidden_fc_input_tensors.append(np.concatenate([inpt_1, [[1]]], axis = 1))
 
             inpt_1 = self.hidden_fc.forward(inpt_1)
             inpt_1 = self.tanh.forward(inpt_1)
-            hidden_state = inpt_1[0]
+            
+#            print("inpt_1", np.sum(inpt_1[0]))
+            hidden_state = copy.deepcopy(inpt_1[0])
 
-            inpt_2 = inpt_1
-#            self.all_otpt_fc_input_tensors.append(np.concatenate([inpt_2, [[1]]], axis = 1))
+            inpt_2 = copy.deepcopy(inpt_1)
             
             inpt_2 = self.otpt_fc.forward(inpt_2)
             inpt_2 = self.sigmoid.forward(inpt_2)
@@ -87,7 +92,12 @@ class RNN(Base.BaseLayer):
             self.all_otpt_fc_input_tensors.append(self.otpt_fc.input_tensor)
             self.all_sigmoid_activations.append(self.sigmoid.activations)
             self.all_tanh_activations.append(self.tanh.activations)
+        
+#        self.hidden_state = hidden_state
+
+    
         self.hidden_state = hidden_state
+
         
         return np.array(inpt_2s)
     
@@ -99,8 +109,8 @@ class RNN(Base.BaseLayer):
     def backward(self, error_tensor):
         
 #    
-        self.gradient_weights = []
-        self.otpt_fc_gradient_weights = []
+        gradient_weights = []
+        otpt_fc_gradient_weights = []
         time_steps = list(range(error_tensor.shape[0]))[::-1]
         gradient_hidden = 0
         gradient_inputs = []
@@ -124,27 +134,28 @@ class RNN(Base.BaseLayer):
             gradient_inputs.append(gradient_inpt[0])
 
 
-            self.gradient_weights.append(self.hidden_fc.gradient_weights)
-            self.otpt_fc_gradient_weights.append(self.otpt_fc.gradient_weights)
+            gradient_weights.append(self.hidden_fc.gradient_weights)
+            otpt_fc_gradient_weights.append(self.otpt_fc.gradient_weights)
             
-        self.gradient_weights = np.array(self.gradient_weights).sum(axis = 0)
-        self.otpt_fc_gradient_weights = np.array(self.otpt_fc_gradient_weights).sum(axis = 0)
+        self.gradient_weights = np.array(gradient_weights).sum(axis = 0)
+        self.otpt_fc_gradient_weights = np.array(otpt_fc_gradient_weights).sum(axis = 0)
 
 
         if self._optimizer:
-            self.otpt_fc.weights = self._optimizer_otpt_fc.calculate_update(self.otpt_fc.weights, self.otpt_fc_gradient_weights)
-            self.weights = self._optimizer_hidden_fc.calculate_update(self.weights, self.gradient_weights)
+            self.otpt_fc.weights = self._optimizer.calculate_update(self.otpt_fc.weights, self.otpt_fc_gradient_weights)
+            self.weights = self._optimizer.calculate_update(self.weights, self.gradient_weights)
 
 
-        return np.array(gradient_inputs[::-1])[::-1]
+        return np.array(gradient_inputs)[::-1]
     @property
     def optimizer(self):
-        return self._optimizer_otpt_fc
+        return self._optimizer
 
     @optimizer.setter
     def optimizer(self, var):
-        self._optimizer_otpt_fc = copy.deepcopy(var)
-        self._optimizer_hidden_fc = copy.deepcopy(var)
+        self._optimizer = var
+#        self._optimizer_otpt_fc = copy.deepcopy(var)
+#        self._optimizer_hidden_fc = copy.deepcopy(var)
 
     @property
     def weights(self):
@@ -162,5 +173,30 @@ class RNN(Base.BaseLayer):
     def gradient_weights(self, var):
         self._gradient_weights = var
 
+    def calculate_regularization_loss(self):
+        if self._optimizer.regularizer:
+            self.regularization_loss += self._optimizer.regularizer.norm(self.hidden_fc_layer.weights)
+            self.regularization_loss += self._optimizer.regularizer.norm(self.output_fc_layer.weights)
+        return self.regularization_loss
+
+
+#self.batch_size = 9
+#self.input_size = 13
+#self.output_size = 5
+#self.hidden_size = 7
+#input_tensor = np.random.rand(13, 9).T
+##
+##
+##layer = RNN(13, 7, 5)
+##output_tensor = layer.forward(input_tensor)
+##error_tensor = layer.backward(output_tensor)
+##
+##
+#layer = RNN(13, 7, 5)
+#layer.memorize = True
+#output_tensor_first = layer.forward(input_tensor)
+#output_tensor_second = layer.forward(input_tensor)
+#
+#print("diff", np.sum(np.square(output_tensor_first - output_tensor_second)))
 
 
