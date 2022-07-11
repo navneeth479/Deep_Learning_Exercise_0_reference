@@ -80,7 +80,6 @@ class BatchNormalization(Base.BaseLayer):
 
         return self.weights.reshape((1, H, 1, 1)) * X_hat + self.bias.reshape((1, H, 1, 1))
 
-
     def backward(self, error_tensor):
         if len(error_tensor.shape) == 4:
             out = compute_bn_gradients(self.reformat(error_tensor), self.reformat(self.input_tensor),

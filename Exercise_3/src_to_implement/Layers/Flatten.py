@@ -12,8 +12,11 @@ class Flatten(Base.BaseLayer):
         super().__init__()
     
     def forward(self, input_tensor):
-        self.shape =  input_tensor.shape
-        batch_size, _, _, _ = self.shape
+        self.shape = input_tensor.shape
+        if len(input_tensor.shape) == 2:
+            batch_size, _ = self.shape
+        elif len(input_tensor.shape) == 4:
+            batch_size, _, _, _ = self.shape
         return input_tensor.reshape(batch_size, -1)
     
     def backward(self, error_tensor):
