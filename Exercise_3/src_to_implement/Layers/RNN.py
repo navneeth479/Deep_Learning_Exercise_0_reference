@@ -19,6 +19,7 @@ from Layers import Sigmoid
 #import FullyConnected
 #import TanH
 #import Sigmoid
+import copy
 import numpy as np
 
 
@@ -44,7 +45,7 @@ class RNN(Base.BaseLayer):
         self.all_hidden_fc_gradient_weights = []
         self.all_otpt_fc_input_tensors = []
         self.all_hidden_fc_input_tensors = []
-#        self.otpt_fc_gradient_weights = np.zeros((self.otpt_fc.weights.shape[0] - 1, self.otpt_fc.weights.shape[1]))
+        
         
     @property
     def memorise(self):
@@ -52,38 +53,42 @@ class RNN(Base.BaseLayer):
     @memorise.setter
     def memorise(self, value):
         self._memorise = value
-    @memorise.deleter
-    def memorise(self):
-        del self._memorise
         
     
     def forward(self, input_tensor):
-        
+        self.all_sigmoid_activations = []
+        self.all_tanh_activations = []
+        self.all_otpt_fc_input_tensors = []
+        self.all_hidden_fc_input_tensors = []
         
         hidden_state = self.hidden_state if not(self._memorise) else np.zeros(self.hidden_size)
-        self.weights = self.hidden_fc.weights
+        
+#        self.weights = self.hidden_fc.weights
         
         inpt_2s = []
         for i in range(input_tensor.shape[0]):
             inpt_1 = np.concatenate([hidden_state, input_tensor[i]]).reshape(1, -1)
-            self.all_hidden_fc_input_tensors.append(np.concatenate([inpt_1, [[1]]], axis = 1))
+#            self.all_hidden_fc_input_tensors.append(np.concatenate([inpt_1, [[1]]], axis = 1))
 
             inpt_1 = self.hidden_fc.forward(inpt_1)
             inpt_1 = self.tanh.forward(inpt_1)
-            
-            hidden_state = inpt_1[0] 
+            hidden_state = inpt_1[0]
 
             inpt_2 = inpt_1
-            self.all_otpt_fc_input_tensors.append(np.concatenate([inpt_2, [[1]]], axis = 1))
+#            self.all_otpt_fc_input_tensors.append(np.concatenate([inpt_2, [[1]]], axis = 1))
             
             inpt_2 = self.otpt_fc.forward(inpt_2)
             inpt_2 = self.sigmoid.forward(inpt_2)
 
             inpt_2s.append(inpt_2[0])
       
+        
+            self.all_hidden_fc_input_tensors.append(self.hidden_fc.input_tensor)
+            self.all_otpt_fc_input_tensors.append(self.otpt_fc.input_tensor)
             self.all_sigmoid_activations.append(self.sigmoid.activations)
             self.all_tanh_activations.append(self.tanh.activations)
         self.hidden_state = hidden_state
+        
         return np.array(inpt_2s)
     
     
@@ -99,10 +104,8 @@ class RNN(Base.BaseLayer):
         time_steps = list(range(error_tensor.shape[0]))[::-1]
         gradient_hidden = 0
         gradient_inputs = []
-        
+#        print(time_steps)
         for t in time_steps:
-            
-            
             self.sigmoid.activations = self.all_sigmoid_activations[t]
             sigmoid_grad = self.sigmoid.backward(error_tensor[t])
             
@@ -118,28 +121,30 @@ class RNN(Base.BaseLayer):
             
             gradient_hidden = hidden_fc_grad[:, :self.hidden_size]
             gradient_inpt = hidden_fc_grad[:, self.hidden_size:]
-#            print(gradient_inpt)
             gradient_inputs.append(gradient_inpt[0])
-#
+
+
             self.gradient_weights.append(self.hidden_fc.gradient_weights)
             self.otpt_fc_gradient_weights.append(self.otpt_fc.gradient_weights)
+            
         self.gradient_weights = np.array(self.gradient_weights).sum(axis = 0)
         self.otpt_fc_gradient_weights = np.array(self.otpt_fc_gradient_weights).sum(axis = 0)
 
 
         if self._optimizer:
-            self.otpt_fc.weights = self.optimizer.calculate_update(self.otpt_fc.weights, self.otpt_fc_gradient_weights)
-            self.weights = self.optimizer.calculate_update(self.weights, self.gradient_weights)
+            self.otpt_fc.weights = self._optimizer_otpt_fc.calculate_update(self.otpt_fc.weights, self.otpt_fc_gradient_weights)
+            self.weights = self._optimizer_hidden_fc.calculate_update(self.weights, self.gradient_weights)
 
 
-        return np.array(gradient_inputs)
+        return np.array(gradient_inputs[::-1])[::-1]
     @property
     def optimizer(self):
-        return self._optimizer
+        return self._optimizer_otpt_fc
 
     @optimizer.setter
     def optimizer(self, var):
-        self._optimizer = var
+        self._optimizer_otpt_fc = copy.deepcopy(var)
+        self._optimizer_hidden_fc = copy.deepcopy(var)
 
     @property
     def weights(self):
