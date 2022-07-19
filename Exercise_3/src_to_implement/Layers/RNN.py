@@ -46,16 +46,7 @@ class RNN(Base.BaseLayer):
         self.all_otpt_fc_input_tensors = []
         self.all_hidden_fc_input_tensors = []
         
-        
-    @property
-    def mem(self):
-        return self._mem
 
-    @mem.setter
-    def memorize(self, var):
-        self._mem = var
-        
-    
     def forward(self, input_tensor):
         self.all_sigmoid_activations = []
         self.all_tanh_activations = []
@@ -179,7 +170,16 @@ class RNN(Base.BaseLayer):
             self.regularization_loss += self._optimizer.regularizer.norm(self.output_fc_layer.weights)
         return self.regularization_loss
 
+        
+    @property
+    def mem(self):
+        return self._mem
 
+    @mem.setter
+    def memorize(self, var):
+        self._mem = var
+        
+    
 #self.batch_size = 9
 #self.input_size = 13
 #self.output_size = 5
