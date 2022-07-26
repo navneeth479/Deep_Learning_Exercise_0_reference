@@ -62,7 +62,6 @@ class Trainer:
         
     
     def val_test_step(self, x, y):
-        
         # predict
         # propagate through the network and calculate the loss and predictions
         # return the loss and the predictions
