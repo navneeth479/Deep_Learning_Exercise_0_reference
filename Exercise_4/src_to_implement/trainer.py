@@ -26,8 +26,10 @@ class Trainer:
         if cuda:
             self._model = model.cuda()
             self._crit = crit.cuda()
-        self.train_batch_sampler = t.utils.data.BatchSampler(t.utils.data.RandomSampler(range(len(self._train_dl))), self.num_epochs, False)
-        self.test_batch_sampler = t.utils.data.BatchSampler(t.utils.data.RandomSampler(range(len(self._val_test_dl))), self.num_epochs, False)
+#        self.train_batch_sampler = t.utils.data.BatchSampler(t.utils.data.RandomSampler(range(len(self._train_dl))), self.num_epochs, False)
+#        self.test_batch_sampler = t.utils.data.BatchSampler(t.utils.data.RandomSampler(range(len(self._val_test_dl))), self.num_epochs, False)
+        self.train_batch_sampler = t.utils.data.BatchSampler(t.utils.data.RandomSampler(range(300)), self.num_epochs, False)
+        self.test_batch_sampler = t.utils.data.BatchSampler(t.utils.data.RandomSampler(range(100)), self.num_epochs, False)
 
             
     def save_checkpoint(self, epoch):

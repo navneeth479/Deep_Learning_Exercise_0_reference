@@ -73,9 +73,11 @@ class ResnetDecoder(nn.Module):
         super().__init__()
         self.avg = nn.AdaptiveAvgPool2d((1, 1))
         self.fully = nn.Linear(in_ch, out_ch)
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, input_tensor):
         averaged = self.avg(input_tensor)
         flattened = torch.flatten(averaged, 1)
         output_tensor = self.fully(flattened)
-        return output_tensor
+        sigmoided = self.sigmoid(output_tensor)
+        return sigmoided

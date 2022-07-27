@@ -11,7 +11,8 @@ from sklearn.model_selection import train_test_split
 # load the data from the csv file and perform a train-test-split
 # this can be accomplished using the already imported pandas and sklearn.model_selection modules
 # TODO
-
+df = pd.read_csv("data.csv")
+train, test = train_test_split(df, test_size=0.2)
 
 # set up data loading for the training and validation set each using t.utils.data.DataLoader and ChallengeDataset objects
 # TODO
