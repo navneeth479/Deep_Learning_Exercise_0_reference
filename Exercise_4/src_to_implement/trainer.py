@@ -1,4 +1,5 @@
 import torch as t
+import numpy as np
 from sklearn.metrics import f1_score
 from tqdm.autonotebook import tqdm
 
@@ -21,10 +22,13 @@ class Trainer:
         self._cuda = cuda
 
         self._early_stopping_patience = early_stopping_patience
-
+        self.num_epochs = 100
         if cuda:
             self._model = model.cuda()
             self._crit = crit.cuda()
+        self.train_batch_sampler = t.utils.data.BatchSampler(t.utils.data.RandomSampler(range(len(self._train_dl))), self.num_epochs, False)
+        self.test_batch_sampler = t.utils.data.BatchSampler(t.utils.data.RandomSampler(range(len(self._val_test_dl))), self.num_epochs, False)
+
             
     def save_checkpoint(self, epoch):
         t.save({'state_dict': self._model.state_dict()}, 'checkpoints/checkpoint_{:03d}.ckp'.format(epoch))
@@ -58,6 +62,15 @@ class Trainer:
         # -update weights
         # -return the loss
         #TODO
+        self._optim.zero_grad()
+        forward_otpt = self._model.forward(x)
+        
+        loss = self._crit(forward_otpt, y)
+        
+        loss.backward()
+        self._optim.step()
+        return loss
+        
         
         
     
@@ -67,6 +80,18 @@ class Trainer:
         # return the loss and the predictions
         #TODO
         
+        self._optim.zero_grad()
+        forward_otpt = self._model.forward(x)
+        
+        loss = self._crit(forward_otpt, y)
+        
+        loss.backward()
+        self._optim.step()
+        return loss, forward_otpt
+        
+        
+        
+        
     def train_epoch(self):
         # set training mode
         # iterate through the training set
@@ -74,6 +99,19 @@ class Trainer:
         # perform a training step
         # calculate the average loss for the epoch and return it
         #TODO
+        losses = []
+        for indices in self.batch_sampler:
+            for idx in indices:
+                img, lbl = self._train_dl[idx]
+                if self._cuda:
+                    img = img.cuda()
+                    lbl = lbl.cuda()
+                l = self.train_step(img, lbl)
+                losses.append(l)
+                
+        return np.mean(np.array(losses))
+        
+        
     
     def val_test(self):
         # set eval mode. Some layers have different behaviors during training and testing (for example: Dropout, BatchNorm, etc.). To handle those properly, you'd want to call model.eval()
@@ -85,12 +123,37 @@ class Trainer:
         # calculate the average loss and average metrics of your choice. You might want to calculate these metrics in designated functions
         # return the loss and print the calculated metrics
         #TODO
+        self._model.eval()
+        predictions = []
+        labels = []
+        losses = []
+        with t.no_grad():
+            for indices in self.batch_sampler:
+                for idx in indices:
+                    img, lbl = self._val_test_dl[idx]
+                    if self._cuda:
+                        img = img.cuda()
+                        lbl = lbl.cuda()            
+                    p = self._model.forward(img)
+                    loss = self._crit(p, lbl)
+                    losses.append(loss)
+                    predictions.append(p)
+                    labels.append(lbl)
+                    
         
+        predictions = np.array(predictions)
+        labels = np.array(labels)
+        
+        print("F1 Score - ", f1_score(labels, predictions))
+        return np.mean(np.array(loss))
     
     def fit(self, epochs=-1):
         assert self._early_stopping_patience > 0 or epochs > 0
         # create a list for the train and validation losses, and create a counter for the epoch 
         #TODO
+        epoch_counter = 0
+        train_loss = []
+        val_loss = []
         
         while True:
       
@@ -101,6 +164,27 @@ class Trainer:
             # check whether early stopping should be performed using the early stopping criterion and stop if so
             # return the losses for both training and validation
         #TODO
+        
+            if epoch_counter > self.num_epochs:
+                break
+            
+            t_loss = self.train_epoch()
+            v_loss = self.val_test()
+            
+            train_loss.append(t_loss)
+            v_loss.append(val_loss)
+            
+            if epoch_counter%10 == 0:
+                self.save_checkpoint(epoch_counter)
+                
+            if val_loss[(epoch_counter - 10)%self.num_epochs] - val_loss[epoch_counter] < self._early_stopping_patience:
+                break
+            
+        return train_loss, val_loss
+            
+            
+            
+            
                     
         
         
