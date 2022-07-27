@@ -49,7 +49,6 @@ class ResBlock(nn.Module):
 
 
 class ResNetGate(nn.Module):
-    """ResNet encoder before the resblocks."""
     def __init__(self, in_channels=3, out_channels=64):
         super().__init__()
         self.gate = nn.Sequential(
@@ -63,12 +62,7 @@ class ResNetGate(nn.Module):
         return output_tensor
 
 
-#Out Block
 class ResnetDecoder(nn.Module):
-    """
-    This class represents the tail of ResNet. It performs a global pooling and maps the output to the
-    correct class by using a fully connected layer.
-    """
     def __init__(self, in_ch, out_ch):
         super().__init__()
         self.avg = nn.AdaptiveAvgPool2d((1, 1))

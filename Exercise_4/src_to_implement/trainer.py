@@ -64,10 +64,13 @@ class Trainer:
         # -return the loss
         #TODO
         self._optim.zero_grad()
+#        print("x shape", x.shape)
+        
         forward_otpt = self._model.forward(x)
+        forward_otpt = (forward_otpt > 0.5).float()
         
-        loss = self._crit(forward_otpt, y)
-        
+        loss = self._crit(forward_otpt, y.float())
+        loss.requires_grad = True
         loss.backward()
         self._optim.step()
         return loss
@@ -100,17 +103,18 @@ class Trainer:
         # perform a training step
         # calculate the average loss for the epoch and return it
         #TODO
-        losses = []
-        for indices in self.train_batch_sampler:
-            for idx in indices:
-                img, lbl = self._train_dl[idx]
-                if self._cuda:
-                    img = img.cuda()
-                    lbl = lbl.cuda()
-                l = self.train_step(img, lbl)
-                losses.append(l)
-                
-        return np.mean(np.array(losses))
+        running_loss = 0
+#        for indices in self.train_batch_sampler:
+        for idx, (img, lbl) in enumerate(self._train_dl):
+#                img, lbl = self._train_dl[idx]
+            if self._cuda:
+                img = img.cuda()
+                lbl = lbl.cuda()
+            l = self.train_step(img, lbl)
+            running_loss += l
+            
+#        print("Returning from train epoch", running_loss / len(self._train_dl))
+        return running_loss / len(self._train_dl)
         
         
     
@@ -124,29 +128,39 @@ class Trainer:
         # calculate the average loss and average metrics of your choice. You might want to calculate these metrics in designated functions
         # return the loss and print the calculated metrics
         #TODO
+#        print("Started Val Test")
         self._model.eval()
         predictions = []
         labels = []
-        losses = []
+        running_loss = 0
         with t.no_grad():
-            for indices in self.test_batch_sampler:
-                for idx in indices:
-                    img, lbl = self._val_test_dl[idx]
-                    if self._cuda:
-                        img = img.cuda()
-                        lbl = lbl.cuda()            
-                    p = self._model.forward(img)
-                    loss = self._crit(p, lbl)
-                    losses.append(loss)
-                    predictions.append(p)
-                    labels.append(lbl)
-                    
+#            for indices in self.test_batch_sampler:
+            for idx, (img, lbl) in enumerate(self._val_test_dl):
+#                print("index", idx)
+#                img, lbl = self._val_test_dl[idx]
+                if self._cuda:
+                    img = img.cuda()
+                    lbl = lbl.cuda()            
+                forward_otpt = self._model.forward(img)
+                forward_otpt = (forward_otpt > 0.5).float()
+#                print("forward", forward_otpt)
+#                print("label", lbl)
+                val_loss = self._crit(forward_otpt, lbl.float())
+                running_loss += val_loss
+                predictions.append(forward_otpt)
+                labels.append(lbl)
+                
+        predictions = np.vstack(np.array(np.array(predictions)))
+        labels = np.vstack(np.array(np.array(labels)))
         
-        predictions = np.array(predictions)
-        labels = np.array(labels)
+#        print("predictions - ", predictions)
+#        print("Labels", labels)
+#        
+#        print("predictions shape- ", predictions.shape)
+#        print("Labels shape", labels.shape)
         
-        print("F1 Score - ", f1_score(labels, predictions))
-        return np.mean(np.array(loss))
+        print("F1 Score - ", f1_score(labels, predictions, average='micro'))
+        return running_loss / len(self._val_test_dl)
     
     def fit(self, epochs=-1):
         assert self._early_stopping_patience > 0 or epochs > 0
@@ -166,21 +180,26 @@ class Trainer:
             # return the losses for both training and validation
         #TODO
         
+            print("Epoch: - ", epoch_counter)
+        
             if epoch_counter > epochs:
                 break
-            
+
             t_loss = self.train_epoch()
             v_loss = self.val_test()
             
             train_loss.append(t_loss)
-            v_loss.append(val_loss)
+            val_loss.append(v_loss)
             
             if epoch_counter%10 == 0:
                 self.save_checkpoint(epoch_counter)
                 
-            if val_loss[(epoch_counter - 10)%self.num_epochs] - val_loss[epoch_counter] < self._early_stopping_patience:
+            if val_loss[max(epoch_counter - 10, 0)%epochs] - val_loss[epoch_counter] < self._early_stopping_patience:
                 break
             
+            epoch_counter+=1
+            print("Training Loss: - ", t_loss)
+            print("Validation Loss: - ", v_loss)
         return train_loss, val_loss
             
             
