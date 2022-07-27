@@ -22,14 +22,13 @@ class Trainer:
         self._cuda = cuda
 
         self._early_stopping_patience = early_stopping_patience
-        self.num_epochs = 100
         if cuda:
             self._model = model.cuda()
             self._crit = crit.cuda()
-#        self.train_batch_sampler = t.utils.data.BatchSampler(t.utils.data.RandomSampler(range(len(self._train_dl))), self.num_epochs, False)
-#        self.test_batch_sampler = t.utils.data.BatchSampler(t.utils.data.RandomSampler(range(len(self._val_test_dl))), self.num_epochs, False)
-        self.train_batch_sampler = t.utils.data.BatchSampler(t.utils.data.RandomSampler(range(300)), self.num_epochs, False)
-        self.test_batch_sampler = t.utils.data.BatchSampler(t.utils.data.RandomSampler(range(100)), self.num_epochs, False)
+        self.train_batch_sampler = t.utils.data.BatchSampler(t.utils.data.RandomSampler(range(len(self._train_dl))), 100, False)
+        self.test_batch_sampler = t.utils.data.BatchSampler(t.utils.data.RandomSampler(range(len(self._val_test_dl))), 100, False)
+#        self.train_batch_sampler = t.utils.data.BatchSampler(t.utils.data.RandomSampler(range(300)), self.num_epochs, False)
+#        self.test_batch_sampler = t.utils.data.BatchSampler(t.utils.data.RandomSampler(range(100)), self.num_epochs, False)
 
             
     def save_checkpoint(self, epoch):
@@ -102,7 +101,7 @@ class Trainer:
         # calculate the average loss for the epoch and return it
         #TODO
         losses = []
-        for indices in self.batch_sampler:
+        for indices in self.train_batch_sampler:
             for idx in indices:
                 img, lbl = self._train_dl[idx]
                 if self._cuda:
@@ -130,7 +129,7 @@ class Trainer:
         labels = []
         losses = []
         with t.no_grad():
-            for indices in self.batch_sampler:
+            for indices in self.test_batch_sampler:
                 for idx in indices:
                     img, lbl = self._val_test_dl[idx]
                     if self._cuda:
@@ -167,7 +166,7 @@ class Trainer:
             # return the losses for both training and validation
         #TODO
         
-            if epoch_counter > self.num_epochs:
+            if epoch_counter > epochs:
                 break
             
             t_loss = self.train_epoch()

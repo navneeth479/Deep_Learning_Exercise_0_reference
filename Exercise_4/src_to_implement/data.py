@@ -26,6 +26,7 @@ class ChallengeDataset(Dataset):
     
     
     def __getitem__(self, index):
+        
         image = imread(self.df.iloc[index]["filename"])
         image = gray2rgb(image)
         image = self._transform_train(image)
