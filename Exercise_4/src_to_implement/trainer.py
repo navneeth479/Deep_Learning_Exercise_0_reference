@@ -25,12 +25,7 @@ class Trainer:
         if cuda:
             self._model = model.cuda()
             self._crit = crit.cuda()
-        self.train_batch_sampler = t.utils.data.BatchSampler(t.utils.data.RandomSampler(range(len(self._train_dl))), 100, False)
-        self.test_batch_sampler = t.utils.data.BatchSampler(t.utils.data.RandomSampler(range(len(self._val_test_dl))), 100, False)
-#        self.train_batch_sampler = t.utils.data.BatchSampler(t.utils.data.RandomSampler(range(300)), self.num_epochs, False)
-#        self.test_batch_sampler = t.utils.data.BatchSampler(t.utils.data.RandomSampler(range(100)), self.num_epochs, False)
 
-            
     def save_checkpoint(self, epoch):
         t.save({'state_dict': self._model.state_dict()}, 'checkpoints/checkpoint_{:03d}.ckp'.format(epoch))
     
@@ -86,11 +81,10 @@ class Trainer:
         
         self._optim.zero_grad()
         forward_otpt = self._model.forward(x)
+        forward_otpt = (forward_otpt > 0.5).float()
+
+        loss = self._crit(forward_otpt, y.float())
         
-        loss = self._crit(forward_otpt, y)
-        
-        loss.backward()
-        self._optim.step()
         return loss, forward_otpt
         
         
@@ -129,15 +123,13 @@ class Trainer:
         # return the loss and print the calculated metrics
         #TODO
 #        print("Started Val Test")
+
         self._model.eval()
         predictions = []
         labels = []
         running_loss = 0
         with t.no_grad():
-#            for indices in self.test_batch_sampler:
             for idx, (img, lbl) in enumerate(self._val_test_dl):
-#                print("index", idx)
-#                img, lbl = self._val_test_dl[idx]
                 if self._cuda:
                     img = img.cuda()
                     lbl = lbl.cuda()            
@@ -147,11 +139,11 @@ class Trainer:
 #                print("label", lbl)
                 val_loss = self._crit(forward_otpt, lbl.float())
                 running_loss += val_loss
-                predictions.append(forward_otpt)
-                labels.append(lbl)
+                predictions.append(forward_otpt.cpu())
+                labels.append(lbl.cpu())
                 
-        predictions = np.vstack(np.array(np.array(predictions)))
-        labels = np.vstack(np.array(np.array(labels)))
+        predictions = np.vstack(np.array(predictions, dtype=object))
+        labels = np.vstack(np.array(labels, dtype=object))
         
 #        print("predictions - ", predictions)
 #        print("Labels", labels)
@@ -159,7 +151,7 @@ class Trainer:
 #        print("predictions shape- ", predictions.shape)
 #        print("Labels shape", labels.shape)
         
-        print("F1 Score - ", f1_score(labels, predictions, average='micro'))
+        print("F1 Score - ", f1_score(labels, predictions, average='weighted'))
         return running_loss / len(self._val_test_dl)
     
     def fit(self, epochs=-1):
@@ -194,12 +186,18 @@ class Trainer:
             if epoch_counter%10 == 0:
                 self.save_checkpoint(epoch_counter)
                 
-            if val_loss[max(epoch_counter - 10, 0)%epochs] - val_loss[epoch_counter] < self._early_stopping_patience:
-                break
+            if epoch_counter > self._early_stopping_patience + 5:
+                check_1 = val_loss[epoch_counter - self._early_stopping_patience] - val_loss[epoch_counter] < 0.00000001
+                check_2 = val_loss[epoch_counter - self._early_stopping_patience-1] - val_loss[epoch_counter-1] < 0.00000001
+                check_3 = val_loss[epoch_counter - self._early_stopping_patience-2] - val_loss[epoch_counter-2] < 0.00000001
+                check_4 = val_loss[epoch_counter - self._early_stopping_patience-3] - val_loss[epoch_counter-3] < 0.00000001
+                check_5 = val_loss[epoch_counter - self._early_stopping_patience-4] - val_loss[epoch_counter-4] < 0.00000001
+                if check_1 and check_2 and check_3 and check_4 and check_5:
+                    break
             
             epoch_counter+=1
-            print("Training Loss: - ", t_loss)
-            print("Validation Loss: - ", v_loss)
+            print("Training Loss: - ", t_loss.cpu().item(), "Validation Loss: - ", v_loss.cpu().item())
+            print()
         return train_loss, val_loss
             
             

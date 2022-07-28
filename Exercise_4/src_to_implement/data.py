@@ -15,11 +15,6 @@ class ChallengeDataset(Dataset):
         self.mode = mode
         self.df = df
 
-        self.input_list = []
-        self.sum_crack = 0
-        self.sum_inactive = 0
-
-
     def __len__(self):
         return self.df.shape[0]
     
